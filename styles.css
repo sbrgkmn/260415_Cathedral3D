@@ -1,0 +1,473 @@
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #ffffff;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  transition: opacity 160ms ease;
+}
+
+#view-tabs {
+  position: fixed;
+  z-index: 20;
+  top: 14px;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(126px, 1fr));
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 1px solid #c9c9c9;
+  border-radius: 12px;
+  background: rgba(250, 250, 250, 0.94);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+#view-tabs button {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-right: 1px solid #d8d8d8;
+  background: transparent;
+  color: #333333;
+  font: 650 14px "Segoe UI", Tahoma, sans-serif;
+  cursor: pointer;
+}
+
+#view-tabs button:last-child {
+  border-right: 0;
+}
+
+#view-tabs button.active {
+  background: #171717;
+  color: #ffffff;
+}
+
+#analysis-panel {
+  position: fixed;
+  z-index: 10;
+  top: 70px;
+  right: 18px;
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100vh - 88px);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  color: #111111;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #d9d9d9;
+  background: rgba(246, 246, 246, 0.96);
+}
+
+.panel-tabs button {
+  border: 0;
+  border-right: 1px solid #d9d9d9;
+  background: transparent;
+  color: #222222;
+  font: 600 12px "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.panel-tabs button:last-child {
+  border-right: 0;
+}
+
+.panel-tabs button.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+.panel-section {
+  display: none;
+  padding: 14px 16px;
+  max-height: calc(100vh - 102px);
+  overflow: auto;
+}
+
+.panel-section.active {
+  display: block;
+}
+
+#step-summary {
+  margin-bottom: 14px;
+  color: #333333;
+  font-size: 14px;
+}
+
+#step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.step-row {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #dedede;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
+  cursor: pointer;
+}
+
+.step-row:hover,
+.step-row:focus-visible {
+  border-color: #777777;
+  outline: none;
+}
+
+.step-row.active {
+  border-color: #111111;
+  background: rgba(246, 248, 250, 0.96);
+}
+
+.step-row canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.step-title {
+  font-weight: 700;
+  color: #111111;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.step-meta {
+  color: #444444;
+  font-size: 13px;
+}
+
+.step-message {
+  grid-column: 1 / -1;
+  padding: 10px;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+body[data-view="steps"] #app {
+  opacity: 0.035;
+  pointer-events: none;
+}
+
+body[data-view="steps"] #analysis-panel {
+  left: 390px;
+  right: 18px;
+  bottom: 18px;
+  width: auto;
+  max-height: none;
+}
+
+body[data-view="steps"] #step-panel {
+  height: calc(100% - 28px);
+  max-height: none;
+}
+
+body[data-view="rules"] #app {
+  opacity: 0.025;
+  pointer-events: none;
+}
+
+body[data-view="rules"] #analysis-panel {
+  left: 390px;
+  right: 18px;
+  bottom: 18px;
+  width: auto;
+  max-height: none;
+}
+
+body[data-view="rules"] #rule-panel {
+  height: calc(100% - 28px);
+  max-height: none;
+}
+
+.rule-lab-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.rule-lab-heading h1 {
+  margin: 2px 0 0;
+  font-size: clamp(22px, 2.2vw, 34px);
+  letter-spacing: -0.035em;
+}
+
+.rule-lab-heading p {
+  max-width: 560px;
+  margin: 0;
+  color: #555555;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.eyebrow {
+  color: #3763d8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rule-lab-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.45fr) minmax(300px, 0.75fr);
+  gap: 14px;
+}
+
+.rule-card {
+  padding: 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
+}
+
+.rule-card-title {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.015em;
+}
+
+.rule-diagram-card canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fbfbfb, #f3f4f6);
+}
+
+.rule-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  color: #444444;
+  font-size: 12px;
+}
+
+.rule-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rule-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.legend-expand { background: #1f9d69; }
+.legend-contract { background: #df5a4f; }
+.legend-peak { background: #7559d9; }
+.legend-neutral { background: #8b929d; }
+
+.rule-controls-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.rule-section-title {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.rule-control {
+  display: grid;
+  grid-template-columns: 1fr minmax(118px, 0.72fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rule-control output {
+  justify-self: end;
+  min-width: 34px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #eceef2;
+  text-align: center;
+}
+
+.rule-control select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #cfd2d8;
+  border-radius: 8px;
+  background: #ffffff;
+  font: 600 13px "Segoe UI", sans-serif;
+}
+
+#rule-planar-stages {
+  width: 100%;
+  accent-color: #3763d8;
+}
+
+.rule-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rule-actions button {
+  min-height: 40px;
+  border: 1px solid #c9ccd2;
+  border-radius: 9px;
+  background: #f4f4f5;
+  font: 700 12px "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.rule-actions button.primary {
+  border-color: #171717;
+  background: #171717;
+  color: #ffffff;
+}
+
+.rule-sequence-card {
+  grid-column: 1 / -1;
+}
+
+#rule-sequence {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.rule-sequence-step {
+  min-height: 74px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f1f2f4;
+}
+
+.rule-sequence-step strong,
+.rule-sequence-step span {
+  display: block;
+}
+
+.rule-sequence-step strong {
+  margin-bottom: 7px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.rule-sequence-step span {
+  color: #3f4349;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#rule-status {
+  margin: 12px 0 0;
+  color: #555c66;
+  font-size: 12px;
+}
+
+.lil-gui.root {
+  --width: 354px;
+  --name-width: 48%;
+  --font-size: 14px;
+  --input-font-size: 14px;
+  --widget-height: 30px;
+  --spacing: 6px;
+  --padding: 8px;
+}
+
+.lil-gui .controller {
+  min-height: 36px;
+}
+
+.lil-gui .controller > .name {
+  line-height: 30px;
+}
+
+.lil-gui .controller input,
+.lil-gui .controller select,
+.lil-gui .controller button {
+  min-height: 30px;
+}
+
+.lil-gui .title {
+  min-height: 38px;
+  font-size: 14px;
+  line-height: 38px;
+}
+
+@media (max-width: 760px) {
+  #view-tabs {
+    top: 8px;
+    width: calc(100vw - 16px);
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  #view-tabs button {
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  body[data-view="steps"] #analysis-panel {
+    left: 8px;
+    right: 8px;
+    top: 58px;
+  }
+
+  body[data-view="rules"] #analysis-panel {
+    left: 8px;
+    right: 8px;
+    top: 58px;
+  }
+
+  .rule-lab-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-sequence-card {
+    grid-column: auto;
+  }
+
+  #rule-sequence {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #step-grid {
+    grid-template-columns: 1fr;
+  }
+}

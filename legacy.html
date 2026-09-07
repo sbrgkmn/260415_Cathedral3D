@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cathedral 3D (Processing Port)</title>
+    <link rel="stylesheet" href="./styles.css?v=facade-shell-1" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <nav id="view-tabs" aria-label="Workspace views">
+      <button type="button" class="active" data-panel-tab="model">3D Form</button>
+      <button type="button" data-panel-tab="steps">2D Stages</button>
+      <button type="button" data-panel-tab="rules">Façade Grammar</button>
+      <button type="button" data-panel-tab="compare">Target Compare</button>
+    </nav>
+    <div id="app"></div>
+    <div id="analysis-panel">
+      <div id="stats" class="panel-section active"></div>
+      <div id="step-panel" class="panel-section">
+        <div id="step-summary"></div>
+        <div id="step-grid"></div>
+      </div>
+      <div id="rule-panel" class="panel-section">
+        <div class="rule-lab-heading">
+          <div>
+            <div class="eyebrow">Target 4 grammar</div>
+            <h1>Half-Pyramid Façade Recursion</h1>
+          </div>
+          <p>Fold one half-pyramid face recursively, mirror it across YZ, then add shell thickness as a separate watertight operation.</p>
+        </div>
+        <div class="rule-lab-grid">
+          <section class="rule-card rule-diagram-card">
+            <div class="rule-card-title">Surface recursion → mirrored façade → thickened shell</div>
+            <canvas id="rule-canvas" width="760" height="430" aria-label="Triangle expansion and contraction rule diagram"></canvas>
+            <div class="rule-legend">
+              <span><i class="legend-expand"></i>Expand</span>
+              <span><i class="legend-contract"></i>Contract</span>
+              <span><i class="legend-neutral"></i>Neutral</span>
+            </div>
+          </section>
+          <section class="rule-card rule-controls-card">
+            <div class="rule-card-title">Recursive hierarchy</div>
+            <label class="rule-control" for="rule-planar-stages">
+              <span>Façade fold depth</span>
+              <output id="rule-planar-output">5</output>
+            </label>
+            <input id="rule-planar-stages" type="range" min="2" max="6" step="1" value="5" />
+
+            <div class="rule-card-title rule-section-title">Primary half-face edges</div>
+            <label class="rule-control">Edge A · contraction<select id="rule-cycle-1"></select></label>
+            <label class="rule-control">Edge B · inner expansion<select id="rule-cycle-2"></select></label>
+            <label class="rule-control">Edge C · side expansion<select id="rule-cycle-3"></select></label>
+
+            <div hidden>
+              <select id="rule-edge-a"></select>
+              <select id="rule-edge-b"></select>
+              <select id="rule-edge-c"></select>
+            </div>
+
+            <div class="rule-actions">
+              <button id="rule-reset" type="button">Reset Target 4 Grammar</button>
+              <button id="rule-apply" class="primary" type="button">Apply &amp; build 3D</button>
+            </div>
+          </section>
+          <section class="rule-card rule-sequence-card">
+            <div class="rule-card-title">Active recursive sequence</div>
+            <div id="rule-sequence"></div>
+            <p id="rule-status">The folded façade is generated first. Thickness is added afterward by offsetting the skin and bridging every perimeter edge.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script>
+      if (window.location.protocol === "file:") {
+        document.body.innerHTML =
+          '<div style="font-family:Segoe UI,Tahoma,sans-serif;padding:20px;line-height:1.5;">' +
+          "<h2>Run via local server</h2>" +
+          "<p>This app cannot run from <code>file://</code>.</p>" +
+          "<p>Use:</p>" +
+          "<pre>python -m http.server 8080</pre>" +
+          '<p>Then open: <a href="http://localhost:8080/index.html">http://localhost:8080/index.html</a></p>' +
+          "</div>";
+        throw new Error("Opened via file://. Use http://localhost:8080/index.html");
+      }
+    </script>
+    <script type="module" src="./main.js?v=facade-shell-1"></script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cathedral — Section Machine</title>
+  <link rel="stylesheet" href="./sections.css?v=3" />
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"}}</script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 28 16 3 29 28H22L16 13 10 28Z"/></svg><span>CATHEDRAL<small>THE SECTION MACHINE</small></span></a>
+    <span class="study-id">STUDY 03 <i>/</i> A section, recursively.</span>
+    <a class="previous-study" href="./plan-study.html">Previous 3D study ↗</a>
+  </header>
+  <aside class="sidebar" aria-label="Section controls">
+    <div class="intro"><span class="eyebrow">FORM THROUGH POLARITY</span><h1>Cut the void.<br>Grow the spire.</h1><p>A triangle becomes a nave, then a sequence of smaller buttresses.</p></div>
+    <section class="controls">
+      <h2><span>01</span> The seed <button class="quiet" id="reset">Reset all</button></h2>
+      <label for="width">Triangle width <output id="width-value"></output></label><input id="width" data-param="width" type="range" min="30" max="130" step="1" />
+      <label for="height">Triangle height <output id="height-value"></output></label><input id="height" data-param="height" type="range" min="50" max="180" step="1" />
+      <details class="proportion-controls"><summary>Nave proportions &amp; material</summary>
+        <label for="nave">Nave span <output id="nave-value"></output></label><input id="nave" data-param="nave" type="range" min=".4" max=".75" step=".01" />
+        <label for="springing">Springing height <output id="springing-value"></output></label><input id="springing" data-param="springing" type="range" min=".35" max=".8" step=".01" />
+        <label for="web">Minimum web <output id="web-value"></output></label><input id="web" data-param="web" type="range" min=".8" max="6" step=".1" />
+        <p class="hint">Nave span is relative to the seed. Springing sets the vertical pier zone when an arch is refined. Web reserves material above openings and between aisles.</p>
+      </details>
+    </section>
+    <section class="controls">
+      <h2><span>02</span> Recursive rules</h2>
+      <label for="expansion"><span class="rule-name"><i class="dot expansion"></i> Expansion</span><output id="expansion-value"></output></label><input id="expansion" data-param="expansion" type="range" min="0" max="1" step=".01" />
+      <p class="hint">All E steps · extend the outer slope and raise a smaller pinnacle.</p>
+      <label for="contraction"><span class="rule-name"><i class="dot contraction"></i> Contraction</span><output id="contraction-value"></output></label><input id="contraction" data-param="contraction" type="range" min="0" max="1" step=".01" />
+      <p class="hint">All C steps · open the nave, establish its springing, then refine pointed arches.</p>
+      <label for="steps">Transformation steps <output id="steps-value"></output></label><input id="steps" type="range" min="0" max="10" step="1" value="6" />
+      <div class="add-rules"><button id="add-e">+ Expansion</button><button id="add-c">+ Contraction</button></div>
+      <p class="hint">Select a drawing below to change that step’s rule or strength.</p>
+    </section>
+    <section class="controls">
+      <h2><span>03</span> Pinnacles &amp; buttresses</h2>
+      <label for="pinnacle">Pinnacle rise <output id="pinnacle-value"></output></label><input id="pinnacle" data-param="pinnacle" type="range" min=".15" max="1" step=".01" />
+      <label for="slenderness">Pinnacle slenderness <output id="slenderness-value"></output></label><input id="slenderness" data-param="slenderness" type="range" min="0" max="1" step=".01" />
+      <p class="hint">E raises each crown. Successive C steps pinch its shoulders into a slender stem. Every peak becomes a single pointed pinnacle in 3D.</p>
+      <label for="buttress">Buttress projection <output id="buttress-value"></output></label><input id="buttress" data-param="buttress" type="range" min="0" max="1" step=".01" />
+      <label for="longitudinal">Longitudinal arch <output id="longitudinal-value"></output></label><input id="longitudinal" data-param="longitudinal" type="range" min="0" max="1" step=".01" />
+      <p class="hint">C progressively lifts the spans between support planes. Use Side to inspect the pointed openings along the nave, or Plan to inspect the buttress folds.</p>
+      <label for="depth">Bay depth <output id="depth-value"></output></label><input id="depth" data-param="depth" type="range" min="12" max="80" step="1" />
+      <label for="fold">Vault fold <output id="fold-value"></output></label><input id="fold" data-param="fold" type="range" min="0" max="1" step=".01" />
+      <label class="toggle-row" for="array"><span>Repeat as an array</span><input id="array" type="checkbox" role="switch" /></label>
+      <div id="array-controls">
+        <label for="bays">Number of bays <output id="bays-value"></output></label><input id="bays" data-param="bays" type="range" min="2" max="8" step="1" />
+        <label for="gap">Gap between bays <output id="gap-value"></output></label><input id="gap" data-param="gap" type="range" min="0" max="12" step="1" />
+      </div>
+      <p class="hint">Buttress shoulders flare at two depth planes, with a recessed waist between them. Pinnacle collars taper in both directions. Connected surfaces close the material around the nave.</p>
+    </section>
+    <div class="source"><span class="eyebrow">STUDIO REFERENCE</span><p>Mahla Behrooz · Fall 2024<br>Serial section transformations, pp. 1–2, 15–16 &amp; 30–31.</p><small>A simplified interpretation of the section rules.</small></div>
+  </aside>
+  <main>
+    <div class="workspace-heading"><div><span class="eyebrow">SECTION → BAY → ARRAY</span><h2 id="stage-title">A recursive nave</h2></div><span id="stage-badge" class="badge"></span></div>
+    <div class="view-grid">
+      <section class="drawing-panel" aria-label="Selected two-dimensional section">
+        <div class="panel-bar"><h3><span>01</span> Section</h3><div class="drawing-switch" aria-label="Section drawing style"><button data-style="solid" aria-pressed="true">Solid</button><button data-style="lines" aria-pressed="false">Lines</button></div></div>
+        <div id="section-view" role="img" aria-label="Recursive nave section"></div>
+        <div class="panel-footer"><label><input id="construction" type="checkbox" />Construction</label><button id="export-svg">SVG ↗</button></div>
+      </section>
+      <section class="model-panel" aria-label="Three-dimensional bay">
+        <div class="panel-bar"><h3><span>02</span> <span id="model-title">Folded bay</span></h3><div class="model-tools"><button id="array-quick" aria-pressed="false">Array</button><button id="fit">Fit ↗</button></div></div>
+        <div class="camera-views" aria-label="Model viewpoint"><button data-camera="iso" aria-pressed="true">Axon</button><button data-camera="side" aria-pressed="false">Side</button><button data-camera="top" aria-pressed="false">Plan</button></div>
+        <div id="bay-view" role="img" aria-label="Triangulated, symmetric folded bay"><p id="model-loading">Loading the folded bay…</p></div>
+        <div class="panel-footer"><label><input id="fold-lines" type="checkbox" checked />Fold lines</label><label><input id="cutaway" type="checkbox" />Cutaway</label><button id="export-stl" disabled title="Export the complete watertight volume">STL ↗</button></div>
+      </section>
+    </div>
+    <div id="mesh-status" class="mesh-status" role="status">Checking the folded volume…</div>
+    <div class="stage-description"><p id="rule-description"></p><span id="section-stats"></span></div>
+    <section class="sequence" aria-label="Compact development sequence">
+      <div class="sequence-heading"><div><span class="eyebrow">THE DEVELOPMENT SEQUENCE</span><span id="sequence-count"></span></div><div class="playback"><button id="back" aria-label="Previous step">←</button><button id="play">▶ Play</button><button id="forward" aria-label="Next step">→</button></div></div>
+      <div id="sequence-strip" role="group" aria-label="Select a transformation step"></div>
+      <div class="sequence-key"><span><i class="dot expansion"></i> E · expand the mass</span><span><i class="dot contraction"></i> C · contract the mass</span><span>All sections at one scale</span></div>
+    </section>
+    <div class="rule-readout" aria-label="Formal rule for this step"><div><span>OPERATE ON</span><strong id="rule-target"></strong></div><div><span>RETAIN</span><strong id="rule-invariant"></strong></div><div><span>PRODUCE</span><strong id="rule-result"></strong></div></div>
+    <section class="step-editor" aria-label="Edit selected step">
+      <div><span class="eyebrow" id="editor-label">SELECTED STEP</span><p id="editor-hint">Change a rule; all later steps develop from it.</p></div>
+      <label for="step-kind">Rule<select id="step-kind"><option value="E">Expansion</option><option value="C">Contraction</option></select></label>
+      <label for="step-amount">Strength <output id="step-amount-value"></output><input id="step-amount" type="range" min="0" max="1" step=".01" /></label>
+    </section>
+    <footer class="workspace-footer"><span>Bilateral symmetry · a continuous section</span><span>Geometry starts in 2D.</span></footer>
+  </main>
+  <div id="notice" role="status" hidden></div>
+  <script type="module" src="./section-app.js?v=3"></script>
+</body>
+</html>
