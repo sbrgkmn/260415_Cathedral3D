@@ -1,0 +1,13 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import {buildBranching,MOUNTAIN_DEFAULTS} from './branching.mjs';
+import {encodeBinarySTL} from './polarity.mjs';
+import {decodeBinarySTL} from './stl.mjs';
+import {meshIntegrity} from './section-solid.mjs';
+const model=buildBranching(MOUNTAIN_DEFAULTS),directory=new URL('./output/branching/',import.meta.url);
+await mkdir(directory,{recursive:true});
+const buffer=encodeBinarySTL(model.solid);new Uint8Array(buffer,0,80).fill(0);new Uint8Array(buffer,0,80).set(new TextEncoder().encode('Branching roof | closed volume | Z up'));
+const integrity=meshIntegrity(decodeBinarySTL(buffer));if(!integrity.watertight)throw Error('Export failed validation');
+await writeFile(new URL('branching-roof.stl',directory),Buffer.from(buffer));
+await writeFile(new URL('branching-tree.json',directory),JSON.stringify({parameters:model.parameters,nodes:model.nodes,edges:model.edges},null,2));
+await writeFile(new URL('validation.json',directory),JSON.stringify(integrity,null,2));
+console.log(JSON.stringify(integrity,null,2));

@@ -96,7 +96,8 @@ are excluded from Git and can be regenerated with the command above.
 ## Earlier studies
 
 - `section-study.html`: previous section/pinnacle study, documented in `SECTION_STUDY.md`.
-- `plan-study.html`: previous plan-first study, documented in `PLAN_STUDY.md`.
+- `plan-study.html`: branching tree / peak / roof study, documented in `BRANCHING_STUDY.md`.
+- `directed-study.html`: earlier plan-first and selective E/C study, documented in `PLAN_STUDY.md`.
 - `legacy.html`: the original 3D implementation.
 
 The earlier implementations and the original STL references remain available

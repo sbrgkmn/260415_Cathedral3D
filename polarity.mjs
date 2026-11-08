@@ -2,6 +2,7 @@
 // Build one half, share edge vertices, then mirror its topology at each snapshot.
 export const DEFAULTS = Object.freeze({
   width: 70, height: 125, depth: 35,
+  directedCycles: 0, shoulder: 0.65, recess: 0.45,
   planCycles: 2, planExpansion: 0.5, planContraction: 0.24,
   contraction: 0.32, expansion: 0.45, uprightness: 0.8, decay: 0.58,
   generations: 1, detail: 1, relief: 0.04,
@@ -16,6 +17,7 @@ const onSeam = p => Math.abs(p[0]) < 1e-9;
 export function normalizeOptions(input = {}) {
   const p = { ...DEFAULTS };
   const limits = {
+    directedCycles: [0, 4], shoulder: [0, 1], recess: [0, 1],
     width: [40, 240], height: [60, 220], depth: [15, 120],
     planCycles: [1, 3], planExpansion: [0, 0.8], planContraction: [0, 0.8],
     contraction: [0, 0.85], expansion: [0, 0.9], decay: [0.25, 0.85],
@@ -26,6 +28,7 @@ export function normalizeOptions(input = {}) {
     const value = Number(input[name] ?? p[name]);
     if (Number.isFinite(value)) p[name] = Math.min(high, Math.max(low, value));
   }
+  p.directedCycles = Math.round(p.directedCycles);
   p.generations = Math.round(p.generations);
   p.planCycles = Math.round(p.planCycles);
   p.detail = Math.round(p.detail);
@@ -113,6 +116,40 @@ function subdivide(mesh, operation, p, generation = 0) {
   return { vertices, faces, motions };
 }
 
+// Refine one upper child per half. Neighbors share inserted edge vertices;
+// transition fans subdivide their surface without displacing other vertices.
+function directedStep(mesh, operation, p, cycle) {
+  const vertices=mesh.vertices.map(v=>[...v]), mids=new Map(), motions=[];
+  const active=mesh.activeFace, face=mesh.faces[active];
+  const top=face.reduce((a,b)=>vertices[a][2]>=vertices[b][2]?a:b);
+  const ordered=[...face]; while(ordered[0]!==top) ordered.push(ordered.shift());
+  const [a,b,c]=ordered;
+  for(const [u,v] of [[a,b],[b,c],[c,a]]) {
+    const from=mix(vertices[u],vertices[v]),to=[...from];
+    if(!onFloor(from)) {
+      const strength=(operation==='expand'?p.shoulder:p.recess)*p.decay**cycle;
+      to[2]+=operation==='expand'?(vertices[a][2]-from[2])*.45*strength:-from[2]*.28*strength;
+    }
+    mids.set(key(u,v),vertices.push(to)-1);
+    if(Math.abs(to[2]-from[2])>1e-9) motions.push({from,to,operation});
+  }
+  const faces=[];let activeFace;
+  mesh.faces.forEach((f,index)=>{
+    if(index===active) {
+      const ab=mids.get(key(a,b)),bc=mids.get(key(b,c)),ca=mids.get(key(c,a));
+      activeFace=faces.length;
+      faces.push([a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]);
+    } else {
+      const loop=[];let changed=false;
+      f.forEach((u,i)=>{loop.push(u);const m=mids.get(key(u,f[(i+1)%3]));if(m!==undefined){loop.push(m);changed=true;}});
+      if(!changed){faces.push([...f]);return;}
+      const center=vertices.push([0,1,2].map(k=>f.reduce((sum,i)=>sum+vertices[i][k],0)/3))-1;
+      loop.forEach((u,i)=>faces.push([u,loop[(i+1)%loop.length],center]));
+    }
+  });
+  return {vertices,faces,motions,activeFace};
+}
+
 function mirror(mesh, info) {
   const vertices = mesh.vertices.map(v => [...v]);
   const reflected = mesh.vertices.map((p, i) => onSeam(p) ? i : vertices.push([-p[0], p[1], p[2]]) - 1);
@@ -123,7 +160,7 @@ function mirror(mesh, info) {
     if (onSeam(m.to)) return [copy];
     return [copy, { ...m, from: [-m.from[0], m.from[1], m.from[2]], to: [-m.to[0], m.to[1], m.to[2]] }];
   });
-  return { ...info, vertices, faces, motions };
+  return { ...info, vertices, faces, motions, activeFaces: mesh.activeFace === undefined ? [] : [mesh.activeFace, mesh.faces.length + mesh.activeFace] };
 }
 
 export function buildStudy(input = {}) {
@@ -148,10 +185,24 @@ export function buildStudy(input = {}) {
       'Recess new contour midpoints toward the projected apex. Valleys separate the plan lobes while the radial sectors remain connected.',
       'PLAN · separate the branches before they rise');
   }
+  if(p.directedCycles) {
+    // The middle radial sector seeds one lineage; its mirror grows in parallel.
+    mesh.activeFace=Math.floor(mesh.faces.length/2);
+    mesh.motions=[];
+    capture('directed','divide','Select upper lineage',
+      'The blue triangle is the only active region in each mirrored half. Its upper child inherits the next operation.',
+      'ONE LINEAGE PER HALF · fixed apex · shared edge points');
+    for(let cycle=0;cycle<p.directedCycles;cycle++) for(const operation of ['expand','contract']) {
+      mesh=directedStep(mesh,operation,p,cycle);
+      capture('directed',operation,`${operation==='expand'?'Shoulder expansion':'Recess contraction'} ${cycle+1}`,
+        'Split only the active triangle. Move new edge points vertically, keep established vertices, and continue in the child touching the original apex. Adjacent faces receive conforming transition triangles.',
+        'UPPER CHILD ONLY · blue = next active triangle · footprint locked');
+    }
+  }
   mesh = subdivide(mesh, 'plan-grid', p);
-  capture('plan', 'divide', 'Divide plan cells',
+  capture(p.directedCycles ? 'vertical' : 'plan', 'divide', p.directedCycles ? 'Prepare whole surface' : 'Divide plan cells',
     'Split the radial sectors into smaller connected cells without deforming the surface. Their cross-connections establish local edges for the coming vertical branches.',
-    'PLAN · local cells established · no vertical displacement');
+    'Local cells established · no displacement in this step');
   for (let generation = 0; generation < p.generations; generation++) {
     mesh = subdivide(mesh, 'expand', p, generation);
     capture('vertical', 'expand', `Raise branches ${generation + 1}`,

@@ -109,3 +109,27 @@ Tests cover phase ordering, plan-only movement, branching density, neutral plan-
 subdivision, preserved footprints and apices, topology, winding, symmetry, parameter
 extremes, independent snapshots, recursion limits, and exact decoding of all six
 source STLs. Binary STL tests check counts, unit normals, and Z-up vertex coordinates.
+
+## Directed upper-child experiment
+
+The browser now defaults to one plan pair, two directed pairs, one whole-surface
+pair, and no finishing subdivision. Set Upward E/C cycles to 0 to compare the
+original uniform method. Engine defaults remain unchanged for earlier consumers.
+
+After the plan is established, the middle radial sector of one half is selected
+and mirrored. Each directed operation splits that triangle into four. Only the
+child incident to the original apex continues. Neighboring triangles reuse the
+same edge points and receive transition fans, preventing cracks.
+
+For a new edge midpoint at height z beneath apex H, directed E adds
+`0.45 * shoulder * decay^cycle * (H-z)`; C subtracts
+`0.28 * recess * decay^cycle * z`. Ground points stay grounded. Coordinates X/Y
+and established vertices remain fixed. These are interpretive vertical rules,
+not reconstructed formulas from the reference illustrations. Blue marks the
+next active face, in both the model and sequence cards. The upper lineage
+shrinks at each half-cycle; the apex itself does not extend upward.
+
+The final all-face E/C pass is the existing vertical generator. This experiment
+remains an open two-face surface; its STL is not a watertight tower.
+
+Run `node --test polarity.test.mjs directed-growth.test.mjs` for verification.

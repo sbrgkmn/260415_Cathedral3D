@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildStudy, analyzeMesh, encodeBinarySTL, DEFAULTS } from './polarity.mjs';
+import { buildStudy, analyzeMesh, encodeBinarySTL, DEFAULTS as ENGINE_DEFAULTS } from './polarity.mjs?v=directed-4';
 import { decodeBinarySTL } from './stl.mjs';
 
 const $ = id => document.getElementById(id);
+const DEFAULTS = {...ENGINE_DEFAULTS,planCycles:1,directedCycles:2,detail:0};
 const query = new URLSearchParams(location.search);
-let study = buildStudy(Object.fromEntries([...query].filter(([key]) => key in DEFAULTS)));
+let study = buildStudy({...DEFAULTS,...Object.fromEntries([...query].filter(([key]) => key in DEFAULTS))});
 let selected = Math.max(0, Math.min(study.frames.length - 1, Math.floor(Number(query.get('stage')) || 0)));
 let view = 'model', cameraView = 'perspective', playing = false, playTimer, noticeTimer;
 let frameMesh, frameEdges, sceneBounds, requestId;
@@ -139,6 +140,10 @@ function drawModel() {
   const geometry = geometryFor(frame);
   frameMesh = new THREE.Mesh(geometry, surfaceMaterial);
   modelGroup.add(frameMesh);
+  if(frame.activeFaces?.length) {
+    const activeGeometry=geometryFor({...frame,faces:frame.activeFaces.map(i=>frame.faces[i])});
+    modelGroup.add(new THREE.Mesh(activeGeometry,new THREE.MeshBasicMaterial({color:0x3c91b5,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})));
+  }
   frameEdges = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), lineMaterial);
   modelGroup.add(frameEdges);
   if (selected > 0) {
@@ -277,7 +282,7 @@ function drawProjection(ctx, frame, box, plan = false) {
       const n = b.sub(a).cross(c.sub(a)).normalize();
       const light = Math.max(0, n.dot(new THREE.Vector3(-0.6, 0.3, 0.74)));
       const shade = Math.round(159 + light * 64);
-      ctx.fillStyle = `rgb(${shade},${shade + 5},${shade - 2})`;
+      ctx.fillStyle = frame.activeFaces?.some(i=>frame.faces[i]===face) ? "#3c91b5" : `rgb(${shade},${shade + 5},${shade - 2})`;
       ctx.fill();
     }
     if (!dense) { ctx.strokeStyle = plan ? '#74806c66' : '#69775e70'; ctx.stroke(); }
@@ -358,7 +363,7 @@ function syncControls() {
     if(output) output.textContent = ['width','height','depth'].includes(key) ? value : `${Math.round(value*100)}%`;
     if(input.type==='range') input.style.setProperty('--fill', `${(value-Number(input.min))/(Number(input.max)-Number(input.min))*100}%`);
   });
-  $('decay').disabled=study.options.generations===1;
+  $('decay').disabled=study.options.generations===1 && study.options.directedCycles<2;
   $('relief').disabled=study.options.detail===0;
   [...$('detail').options].forEach(option => option.disabled = Number(option.value) > 6 - study.options.planCycles - 2 * study.options.generations);
   [...$('generations').options].forEach(option => option.disabled = Number(option.value) > Math.floor((6-study.options.planCycles)/2));

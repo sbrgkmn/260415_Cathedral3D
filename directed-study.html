@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cathedral — Polarity Study</title>
+  <link rel="stylesheet" href="./study.css?v=directed-4" />
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M3 28 17 4 31 28 17 21Z M17 4V21 M3 28H31"/></svg><span>CATHEDRAL<small>FORM &amp; POLARITY</small></span></a>
+    <div class="study-tag"><span class="status-dot"></span>Study 02 <span class="tag-divider">/</span> Plan, then height</div>
+    <div class="header-actions"><button id="open-reference" class="text-link">Compare STLs</button><a href="./legacy.html" class="text-link">Previous version ↗</a><button id="export" class="button secondary" title="Export the selected open triangular surface">Export study STL <span aria-hidden="true">↗</span></button></div>
+  </header>
+  <aside class="sidebar" aria-label="Study parameters">
+    <div class="sidebar-intro"><span class="eyebrow">A GENERATIVE GRAMMAR</span><h1>Branch in plan.<br>Grow toward the tip.</h1><p>Establish the footprint, advance one upper lineage, then refine the whole surface. Blue marks the next active triangle.</p></div>
+    <section class="control-section">
+      <div class="section-heading"><h2>01 <span>Seed proportions</span></h2><button id="reset" class="quiet-button">Reset</button></div>
+      <label class="range-label" for="width">Width <output for="width" id="width-value"></output></label><input type="range" id="width" min="40" max="240" step="5" data-param="width" />
+      <label class="range-label" for="height">Height <output for="height" id="height-value"></output></label><input type="range" id="height" min="60" max="220" step="5" data-param="height" />
+      <label class="range-label" for="depth">Depth <output for="depth" id="depth-value"></output></label><input type="range" id="depth" min="15" max="120" step="5" data-param="depth" />
+    </section>
+    <section class="control-section plan-controls">
+      <div class="section-heading"><h2>02 <span>Plan development</span></h2><span class="phase-label">XY ONLY</span></div>
+      <label class="select-label" for="planCycles">Plan E/C cycles<select id="planCycles" data-param="planCycles"><option value="1">1 · 8 radial sectors</option><option value="2">2 · 32 radial sectors</option><option value="3">3 · 128 radial sectors</option></select></label>
+      <label class="range-label" for="planExpansion">Branch expansion<output for="planExpansion" id="planExpansion-value"></output></label><input type="range" id="planExpansion" min="0" max="0.8" step="0.01" data-param="planExpansion" />
+      <label class="range-label" for="planContraction">Plan recesses<output for="planContraction" id="planContraction-value"></output></label><input type="range" id="planContraction" min="0" max="0.8" step="0.01" data-param="planContraction" />
+      <p class="control-hint">Alternate outward lobes and inward valleys. Finish all plan cycles before raising new peaks.</p>
+      <button id="inspect-plan" class="button phase-button">Inspect completed plan ↗</button>
+    </section>
+    <section class="control-section">
+      <div class="section-heading"><h2>03 <span>Directed growth</span></h2></div>
+      <label class="select-label" for="directedCycles">Upward E/C cycles<select id="directedCycles" data-param="directedCycles"><option value="0">0 — original all-face method</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+      <label class="range-label" for="shoulder">Shoulder expansion<output id="shoulder-value"></output></label><input id="shoulder" type="range" min="0" max="1" step="0.01" data-param="shoulder" />
+      <label class="range-label" for="recess">Recess contraction<output id="recess-value"></output></label><input id="recess" type="range" min="0" max="1" step="0.01" data-param="recess" />
+      <p class="control-hint">Only the upper child continues, once per mirrored half. Established tips stay fixed. E raises new shoulders; C lowers new recesses. Both move vertically to preserve the footprint.</p>
+      <div class="section-heading"><h2>04 <span>Whole-surface E/C</span></h2></div>
+      <label class="range-label" for="contraction"><span><i class="dot contract"></i>Contraction</span><output for="contraction" id="contraction-value"></output></label><input type="range" id="contraction" min="0" max="0.85" step="0.01" data-param="contraction" />
+      <p class="control-hint">Lower new valleys; retain existing peaks.</p>
+      <label class="range-label" for="expansion"><span><i class="dot expand"></i>Expansion</span><output for="expansion" id="expansion-value"></output></label><input type="range" id="expansion" min="0" max="0.9" step="0.01" data-param="expansion" />
+      <p class="control-hint">Raise new apices along the vertical axis.</p>
+      <label class="range-label" for="uprightness">Branch uprightness<output for="uprightness" id="uprightness-value"></output></label><input type="range" id="uprightness" min="0.5" max="0.9" step="0.01" data-param="uprightness" />
+      <p class="control-hint">Place new upper points nearer their branch bases.</p>
+      <label class="select-label" for="generations">Vertical generations<select id="generations" data-param="generations"><option value="1">1 · E/C pair</option><option value="2">2 · E/C pairs</option><option value="3">3 · E/C pairs</option></select></label>
+      <label class="range-label" for="decay">Next generation strength<output for="decay" id="decay-value"></output></label><input type="range" id="decay" min="0.25" max="0.85" step="0.01" data-param="decay" />
+    </section>
+    <section class="control-section">
+      <div class="section-heading"><h2>05 <span>Surface articulation</span></h2></div>
+      <label class="select-label" for="detail">Subdivision passes<select id="detail" data-param="detail"><option value="0">0 · structural faces</option><option value="1">1 · fine</option><option value="2">2 · finer</option><option value="3">3 · finest</option></select></label>
+      <label class="range-label" for="relief">Facet relief<output for="relief" id="relief-value"></output></label><input type="range" id="relief" min="0" max="0.15" step="0.005" data-param="relief" />
+      <p class="control-hint">Added after development. Keeps the outline.</p>
+    </section>
+    <section class="control-section reference-controls">
+      <div class="section-heading"><h2>06 <span>Compare target STLs</span></h2></div>
+      <label class="select-label" for="reference-file">Reference file<select id="reference-file"><option>Target_1.stl</option><option>Target_2.stl</option><option>Target_3.stl</option><option selected>Target_4.stl</option><option>Target_5.stl</option><option>Target_6.stl</option></select></label>
+      <label class="select-label" for="reference-mode">3D display<select id="reference-mode"><option value="study">Generated study</option><option value="reference">Original target STL</option><option value="overlay">Study + target overlay</option></select></label>
+      <p id="reference-status" class="control-hint reference-status">Load an original STL to compare its plan and elevation.</p>
+      <a id="reference-hierarchy" href="./analysis/Target_4-hierarchy.png" target="_blank" class="reference-link">View reconstructed target stages ↗</a>
+      <a href="./analysis/stl-reference-comparison.png" target="_blank" class="reference-link">All six targets · plan / elevation / 3D ↗</a>
+    </section>
+    <div class="source-note">An interpretive study of the horizontal and vertical rules in Figures 6–7.<a href="https://jfa.arch.metu.edu.tr/uploads/docs/sayilar/sayi-37-1/metujfa2020105.pdf" target="_blank" rel="noreferrer">Gökmen, 2020 · Read the paper ↗</a></div>
+  </aside>
+  <main class="workspace">
+    <div class="viewbar"><div class="segmented" aria-label="Workspace view"><button class="active" data-mode="model" aria-pressed="true">Single stage</button><button data-mode="series" aria-pressed="false">Progressive series</button></div><div class="view-buttons" aria-label="Camera view"><button data-camera="perspective" class="active" aria-pressed="true">3D</button><button data-camera="front" aria-pressed="false">Elevation</button><button data-camera="top" aria-pressed="false">Plan</button><button id="fit" title="Fit all stages at the same scale">Fit ↗</button></div></div>
+    <div id="model-view" class="model-view">
+      <div class="stage-heading"><div class="stage-kicker"><span id="stage-number">STAGE 00</span><span id="stage-kind" class="operation seed">SEED</span></div><h2 id="stage-title">Two-face seed</h2><p id="stage-description"></p></div>
+      <div id="viewport" role="img" aria-label="Interactive three-dimensional view of the selected stage"></div>
+      <div class="viewport-options"><label><input id="edges" type="checkbox" checked />Edges</label><label><input id="ghost" type="checkbox" />Previous surface</label><label><input id="vectors" type="checkbox" checked />Movement arrows</label></div>
+      <div class="drawing-note"><span id="rule-caption"></span><small id="navigation-hint">Drag to orbit · scroll to zoom · right-drag to pan</small></div>
+      <div id="mesh-stats" class="mesh-stats" aria-live="polite"></div>
+    </div>
+    <div id="series-view" class="series-view" hidden><div class="series-heading"><span class="eyebrow">DEVELOPMENT AT A COMMON SCALE</span><h2>A progressive series</h2><p>Read left to right. Each generated form and its plan come from the same stage geometry. Select a stage to inspect it in 3D.</p></div><div id="series-grid"></div></div>
+    <section class="timeline" aria-label="Development timeline">
+      <div class="timeline-heading"><div><span class="eyebrow">DEVELOPMENT SEQUENCE</span><span id="sequence-summary"></span></div><div class="playback"><button id="previous" aria-label="Previous stage">←</button><button id="play" aria-label="Play development sequence">▶ <span>Play sequence</span></button><button id="next" aria-label="Next stage">→</button></div></div>
+      <div class="phase-navigation" aria-label="Development phases"><button data-phase="plan">01 · Develop plan</button><span>→</span><button data-phase="directed">02 · Grow toward tip</button><button data-phase="vertical">03 · Refine all faces</button><span>→</span><button data-phase="surface">04 · Subdivide surface</button></div>
+      <div id="stage-strip" class="stage-strip" role="group" aria-label="Select a development stage"></div>
+    </section>
+  </main>
+  <div id="notice" role="status" hidden></div>
+  <script type="module">import('./study.js?v=directed-4').catch(error => { const el = document.getElementById('notice'); el.hidden = false; el.textContent = 'The 3D study could not load. Check the local server and internet connection, then reload. ' + error.message; console.error(error); });</script>
+</body>
+</html>
