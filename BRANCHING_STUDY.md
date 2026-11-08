@@ -173,7 +173,7 @@ The browser starts with one marginal cycle. The primary Surface E/C detail axis 
 
 Marginal growth controls are visible outside Advanced: Margin cycles, Margin amplitude (percentage), and Minimum margin edge length (model units). The primary vertical-detail slider now changes vertical E/C only, leaving the marginal settings independent.
 
-The Steps tab builds a sequence from the current valid parameters: seed and each lateral growth pass, lifted peak graph, open folded roof, closed mass, each margin pass, and each vertical E/C pass. Thumbnails use the current final model's common projected bounds for a shared scale. Every card is generated through the same geometry worker and can be loaded back into the study at its exact construction stage. Refresh sequence rebuilds it from the current study. This tab uses lightweight raster thumbnails and cancels pending display updates when switching tabs.
+The Steps tab builds a sequence from the current valid parameters: solid seed and each lateral growth mass at half height, full peak hierarchy, each margin pass, and each vertical E/C pass. Thumbnails use the current final model's common projected bounds for a shared scale. Every card is generated through the same geometry worker and can be loaded back into the study at its exact construction stage. Refresh sequence rebuilds it from the current study. This tab uses lightweight raster thumbnails and cancels pending display updates when switching tabs.
 
 
 ## Body balance and monochrome representation
@@ -205,3 +205,23 @@ Outer silhouette and Inner silhouette now have separate pixel weights. Fixed-iso
 ### Proportional base panels
 
 `baseRiseRatio` raises low perimeter eaves toward the lowest higher vertex of their adjacent roof cells before marginal and vertical refinement. The browser defaults to 30%, replacing the visually shallow uniform closure strip with taller locally scaled panels. Existing higher nose points are never lowered; main branch peaks and plan coordinates stay fixed. Advanced / Nave widths and vertical development exposes Base panel height ratio; zero restores the former low base. Roof, walls and bottom remain connected. Test coverage includes unchanged nodes, raised boundary heights, and watertight detailed STL exports.
+
+## Architectural massing atlas and simplified controls
+
+The 4 x 4 atlas groups rows into Tower, Twin towers, Nave, and Spire cluster. Recipes vary footprint, height, growth and balance within these families. Compact tower seeds emphasize a dominant central peak; twin towers raise descendant peaks above the root; nave recipes broaden the footprint. These are massing studies, not resolved floor plans. Each card pairs an isometric form with a black-and-white roof plan showing projected roof triangles and a heavier perimeter. Selecting a card loads its geometry parameters.
+
+Primary controls are Branching, Footprint spread, Body width, Height, and Vertical E/C detail. Body balance and Drawing settings are collapsed disclosures; peak cascade remains available under Advanced / Peak proportions. Independent marginal growth controls remain accessible. Steps use closed solid meshes from the beginning, with a common camera scale. Later passes can look unchanged when minimum-size stopping criteria have already been reached.
+
+### Vertical atlas revision
+
+All sixteen recipes now emphasize vertical massing: Central spire, Twin spires, Buttressed tower, and Radial crown. Main spine widths use 140–175% of nominal branch width; side projections retain separate thinner widths and much shorter clear lengths. This uses the existing connected branch topology, without replacing it with a filled envelope. Packing is reduced while absolute peak heights remain independent of plan reservation.
+
+Atlas boundary refinement uses two marginal passes with 24–36% amplitude and a minimum edge threshold proportional to branch width. This deliberately overrides the source study threshold, which could previously suppress all small-scale boundary articulation. Collision safeguards still reduce amplitudes where needed. Selecting a card loads these settings for further editing via Body width, the detailed spine/projection width ratios, and Marginal growth.
+
+### Balanced triangle sizes
+
+Atlas recipes now use one marginal-growth cycle (rather than two) to reduce narrow boundary panels, followed by conforming midpoint subdivision of long solid edges. The target length is 80% of nominal branch width. A split propagates to both incident faces, including closure faces, so there are no hanging vertices. Existing positions, peaks, folds and outline remain fixed. This improves edge-length consistency rather than guaranteeing equal triangle areas; narrow original cells and the eight-pass / 80,000-face budget can still limit uniformity. Advanced / Triangle proportions exposes Target edge length (zero disables). STL, roof previews and image export use the balanced mesh.
+
+### Shape-aware stopping
+
+When triangle balancing is active, E/C now stops on roof cells with poor plan aspect ratios. The balancing pass also checks projected area, plan quality and prospective 3D child quality. Either incident face can veto a shared-edge split, preventing refinement from spreading into a narrow ridge. This prioritizes readable proportions over equal edge lengths; pointed peaks and existing narrow folds remain geometrically intact. These checks reduce added slivers but do not remesh away every acute triangle.

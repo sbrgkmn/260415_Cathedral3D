@@ -270,3 +270,37 @@ test('base panels rise with local roofs without moving peaks or opening the volu
  assert.ok(raised>low.boundary.length/2);
  const detailed=buildBranching({...p,baseRiseRatio:.3,marginSteps:1,verticalSteps:2});assert.ok(detailed.integrity.watertight);assert.ok(meshIntegrity(decodeBinarySTL(encodeBinarySTL(detailed.solid))).watertight);
 });
+
+test('vertical atlas keeps articulated closed bodies despite a coarse source margin threshold',async()=>{
+ const {variationRecipes}=await import('./branching-variations.mjs');
+ for(const recipe of variationRecipes({...MOUNTAIN_DEFAULTS,marginMin:10000,marginSteps:0,verticalSteps:0})){
+  const m=buildBranching(recipe);
+  assert.ok(m.integrity.watertight);assert.equal(m.integrity.components,1);
+  assert.ok(m.margins.lobes>0);assert.ok(m.margins.notches>0);
+  const plain=buildBranching({...recipe,marginSteps:0});
+  assert.ok(m.boundary.length>plain.boundary.length);
+  assert.deepEqual(m.nodes.map(n=>n.point),plain.nodes.map(n=>n.point),'Boundary articulation must preserve the peak hierarchy');
+ }
+});
+
+
+test('triangle balancing splits long faces conformingly without moving existing geometry',()=>{
+ const p={...MOUNTAIN_DEFAULTS,nave:1,marginSteps:1,verticalSteps:0};
+ const a=buildBranching(p),b=buildBranching({...p,triangleSize:18});
+ assert.ok(b.integrity.watertight);assert.equal(b.integrity.components,1);
+ assert.deepEqual(b.solid.vertices.slice(0,a.solid.vertices.length),a.solid.vertices);
+ assert.ok(b.solid.faces.length>a.solid.faces.length);
+ const longest=m=>Math.max(...m.solid.faces.slice(...m.solid.regions.roof).flatMap(f=>f.map((a,i)=>Math.hypot(...m.solid.vertices[a].map((x,j)=>x-m.solid.vertices[f[(i+1)%3]][j])))));
+ assert.ok(longest(b)<=longest(a)+1e-8); // Protected narrow faces can retain their long edges.
+ assert.ok(meshIntegrity(decodeBinarySTL(encodeBinarySTL(b.solid))).watertight);
+});
+
+
+
+test('quality guard preserves compressed roof triangles while refining broad triangles',async()=>{
+ const {balanceTriangles}=await import('./balanced-mesh.mjs');
+ const narrow={vertices:[[0,0,0],[.1,0,100],[0,.1,0]],faces:[[0,1,2]],regions:{roof:[0,1]}};
+ balanceTriangles(narrow,10);assert.equal(narrow.faces.length,1);
+ const broad={vertices:[[0,0,0],[100,0,0],[50,86.6,0]],faces:[[0,1,2]],regions:{roof:[0,1]}};
+ balanceTriangles(broad,20);assert.ok(broad.faces.length>1);
+});

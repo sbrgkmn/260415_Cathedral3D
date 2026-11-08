@@ -1,3 +1,4 @@
+import {triangleQuality} from './triangle-quality.mjs';
 // Conforming, tip-directed expansion/contraction on sloping roof edges.
 const key=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
 const area=(v,f)=>{const [a,b,c]=f.map(i=>v[i]);return Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/2;};
@@ -14,6 +15,7 @@ export function developVerticalEC(roof,p){
    // Leave the outer boundary and vertical gables intact. Both neighbors
    // must have room for a new fold, avoiding a hanging vertex at any scale.
    if(e.faces.length!==2)continue;
+      if(p.triangleSize>0&&e.faces.some(i=>triangleQuality(roof.faces[i].map(id=>roof.vertices[id]),true)<.22)){stats.stopped++;continue;}
    const areas=e.faces.map(measure);
    if(Math.min(...areas)<p.minArea){stats.stopped++;continue;}
    let lo=e.a,hi=e.b;if(roof.vertices[lo][2]>roof.vertices[hi][2])[lo,hi]=[hi,lo];

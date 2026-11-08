@@ -1,8 +1,9 @@
+import {balanceTriangles} from './balanced-mesh.mjs';
 import {developMargins} from './marginal-growth.mjs';
 import {developVerticalEC} from './vertical-ec.mjs';
 import {meshIntegrity} from './section-solid.mjs';
 
-export const DEFAULTS=Object.freeze({levels:2,angle:70,length:65,lengthRatio:.7,stemLength:35,branchWidth:20,height:125,falloff:.72,wall:38,valley:.68,growth:0,spacing:18,spurRatio:.65,spurAngle:75,descent:.7,angleRatio:.5,spacingRatio:.35,growthLength:.65,growthAngle:.8,widthFill:1,forkIncrement:0,sideIncrement:0,spineWidth:1,projectionWidth:1,verticalSteps:0,minArea:10,verticalLift:.3,nave:0,branchTaper:.65,branchReach:1,morphology:0,packing:1,proportionLock:1,tipNose:0,marginSteps:0,marginSize:.15,marginMin:6,leftRight:.5,frontBack:.5,balanceMode:0,baseRiseRatio:0});
+export const DEFAULTS=Object.freeze({levels:2,angle:70,length:65,lengthRatio:.7,stemLength:35,branchWidth:20,height:125,falloff:.72,wall:38,valley:.68,growth:0,spacing:18,spurRatio:.65,spurAngle:75,descent:.7,angleRatio:.5,spacingRatio:.35,growthLength:.65,growthAngle:.8,widthFill:1,forkIncrement:0,sideIncrement:0,spineWidth:1,projectionWidth:1,verticalSteps:0,minArea:10,verticalLift:.3,nave:0,branchTaper:.65,branchReach:1,morphology:0,packing:1,proportionLock:1,tipNose:0,marginSteps:0,marginSize:.15,marginMin:6,leftRight:.5,frontBack:.5,balanceMode:0,baseRiseRatio:0,triangleSize:0});
 export const MOUNTAIN_DEFAULTS=Object.freeze({...DEFAULTS,angle:90,length:25,lengthRatio:.52,stemLength:13,branchWidth:27,height:180,wall:8,falloff:.48,valley:.72});
 export const RANGE_DEFAULTS=Object.freeze({...MOUNTAIN_DEFAULTS,levels:2,angle:150,length:90,lengthRatio:.6,stemLength:55,branchWidth:28,height:125,falloff:.62,growth:2,spacing:16,spurRatio:.85,spurAngle:80,descent:.62});
 export function normalize(input={}) {
@@ -233,6 +234,8 @@ export function buildBranching(input={}) {
     solid.faces.push([bottom[c],bottom[b],bottom[a]]);
   }
   solid.regions={roof:[0,wallStart],walls:[wallStart,baseStart],base:[baseStart,solid.faces.length]};
+  const triangleBalance=balanceTriangles(solid,p.triangleSize);
+  if(p.triangleSize>0){roof.vertices=solid.vertices;roof.faces=solid.faces.slice(...solid.regions.roof);}
   const integrity=meshIntegrity(solid);if(!integrity.watertight)throw Error(`Branch volume failed validation: ${JSON.stringify(integrity)}`);
-  return {...graph,roof,solid,boundary,integrity,refinement,margins,heightScale,branchWidth:Math.max(...roof.widths),widthRange:[Math.min(...roof.widths),Math.max(...roof.widths)]};
+  return {...graph,roof,solid,boundary,integrity,triangleBalance,refinement,margins,heightScale,branchWidth:Math.max(...roof.widths),widthRange:[Math.min(...roof.widths),Math.max(...roof.widths)]};
 }

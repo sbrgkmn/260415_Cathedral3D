@@ -1,11 +1,11 @@
-import {facetGray,prepareFaceTones,silhouetteClasses} from './drawing-style.mjs?v=31';
+import {facetGray,prepareFaceTones,silhouetteClasses} from './drawing-style.mjs?v=37';
 import {LineSegments2} from 'three/addons/lines/LineSegments2.js';
 import {LineSegmentsGeometry} from 'three/addons/lines/LineSegmentsGeometry.js';
 import {LineMaterial} from 'three/addons/lines/LineMaterial.js';
-import {variationRecipes} from './branching-variations.mjs';
+import {variationRecipes,ARCHITECTURAL_FAMILIES} from './branching-variations.mjs?v=37';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {buildBranching,MOUNTAIN_DEFAULTS,RANGE_DEFAULTS} from './branching.mjs?v=31';
+import {buildBranching,MOUNTAIN_DEFAULTS,RANGE_DEFAULTS} from './branching.mjs?v=37';
 const DEFAULTS={...MOUNTAIN_DEFAULTS,nave:1,packing:.6,tipNose:.6,marginSteps:1,balanceMode:1,baseRiseRatio:.3};
 import {encodeBinarySTL} from './polarity.mjs';
 const $=id=>document.getElementById(id),query=new URLSearchParams(location.search);
@@ -32,6 +32,7 @@ function weightedLines(points,weight,color=0x000000,opacity=1,depthTest=true){if
 function lines(vertices,edges,color,opacity=1){weightedLines(edges.flatMap(e=>e.flatMap(i=>vertices[i])),'ridges',color,opacity,false);}
 function dots(points){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));content.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x000000,size:6,sizeAttenuation:false,depthTest:false})));}
 function draw(){
+ if(document.getElementById("triangle-size"))document.getElementById("triangle-size").value=model.parameters.triangleSize;
  $('growth-readout').textContent=`Growth step ${model.parameters.growth}   ${model.nodes.length} peaks`;$('grow-back').disabled=model.parameters.growth===0;$('grow-next').disabled=model.parameters.growth>=5;
  ambient.intensity=Math.PI*.72;sun.intensity=Math.PI*.55;sun.castShadow=softShadows;ground.visible=softShadows&&stage>=2;ground.material.opacity=.16;
  const bounds=new THREE.Box3().setFromPoints(model.solid.vertices.map(v=>new THREE.Vector3(...v))),center=bounds.getCenter(new THREE.Vector3()),radius=Math.max(bounds.getSize(new THREE.Vector3()).length(),10);
@@ -72,7 +73,7 @@ function sync(){
   const number=$(k+'-number');if(document.activeElement!==number)number.value=Number((percentages.has(k)?v*100:v).toFixed(8));
  });
 }
-const worker=new Worker('./branching-worker.js?v=31',{type:'module'}),pending=new Map();let job=0,revision=0,buildTimer;
+const worker=new Worker('./branching-worker.js?v=37',{type:'module'}),pending=new Map();let job=0,revision=0,buildTimer;
 worker.onmessage=({data})=>{const task=pending.get(data.id);if(!task)return;pending.delete(data.id);data.error?task.reject(Error(data.error)):task.resolve(data.model);};
 worker.onerror=()=>{for(const task of pending.values())task.reject(Error('Geometry worker could not load. Reload the page.'));pending.clear();};
 function compute(parameters){return new Promise((resolve,reject)=>{const id=++job;pending.set(id,{resolve,reject});worker.postMessage({id,parameters});});}
@@ -121,7 +122,7 @@ new ResizeObserver(()=>{resize();invalidate();}).observe($('viewport'));sync();d
 const main=document.querySelector('main'),editor=document.createElement('div');editor.className='editor-panel';
 while(main.firstChild)editor.append(main.firstChild);main.append(editor);
 const tabs=document.createElement('div');tabs.className='buttons workspace-tabs';tabs.innerHTML='<button id="tab-study" aria-pressed="true">Study</button><button id="tab-steps" aria-pressed="false">Steps</button><button id="tab-variations" aria-pressed="false">Variations 4 x 4</button>';main.prepend(tabs);
-const gallery=document.createElement('section');gallery.id='variations';gallery.hidden=true;gallery.innerHTML='<div class="toolbar"><div><h2>Massing atlas</h2><p>Four bodies, four divergent growth regimes. Click to edit.</p></div><button id="regenerate">Regenerate from study</button></div><p id="gallery-status" role="status"></p><div id="variation-grid"></div>';main.append(gallery);
+const gallery=document.createElement('section');gallery.id='variations';gallery.hidden=true;gallery.innerHTML='<div class="toolbar"><div><h2>Massing atlas</h2><p>Vertical families with broad cores, short buttresses, and articulated roof plans.</p></div><button id="regenerate">Regenerate from study</button></div><p id="gallery-status" role="status"></p><div id="variation-grid"></div>';main.append(gallery);
 let galleryRun=0;
 function showGallery(show){if(typeof stepsPanel!=='undefined'){stepsPanel.hidden=true;stepRun++;$('tab-steps').setAttribute('aria-pressed','false');}editor.hidden=show;gallery.hidden=!show;$('tab-study').setAttribute('aria-pressed',String(!show));$('tab-variations').setAttribute('aria-pressed',String(show));if(!show){resize();fit();invalidate();}}
 $('tab-study').onclick=()=>{galleryRun++;showGallery(false);};$('tab-variations').onclick=()=>{showGallery(true);if(!$('variation-grid').children.length)generateGallery();};$('regenerate').onclick=generateGallery;
@@ -141,22 +142,22 @@ function thumbnail(m,options={}){
 }
 async function generateGallery(){const run=++galleryRun;const grid=$('variation-grid');grid.replaceChildren();const recipes=variationRecipes(model.parameters);$('gallery-status').textContent='Generating 16 watertight variations ';
  for(let i=0;i<recipes.length;i++){if(run!==galleryRun)return;const card=document.createElement('button');card.className='variation-card';card.textContent=`${i+1}   Generating `;grid.append(card);
- try{const result=await compute(recipes[i]);if(run!==galleryRun)return;card.previewData={model:result,options:{}};card.replaceChildren(thumbnail(result));const label=document.createElement('span');label.textContent=`${['Fan','Axial','Cross','Crown'][Math.floor(i/4)]} ${i%4+1}   ${result.integrity.faces} faces   closed`;card.append(label);card.onclick=()=>{galleryRun++;showGallery(false);$('morphology').value=String(result.parameters.morphology);rebuild(result.parameters,{refit:true});};}catch(error){card.textContent=`${i+1}   Cannot form this variation: ${error.message}`;card.disabled=true;}
+ try{const result=await compute(recipes[i]);if(run!==galleryRun)return;card.previewData={model:result,options:{}};const pair=document.createElement('div');pair.className='preview-pair';pair.append(thumbnail(result),planThumbnail(result));card.replaceChildren(pair);const label=document.createElement('span');label.textContent=`${ARCHITECTURAL_FAMILIES[Math.floor(i/4)]} ${i%4+1}   ${result.integrity.faces} faces   closed`;card.append(label);card.onclick=()=>{galleryRun++;showGallery(false);$('morphology').value=String(result.parameters.morphology);rebuild(result.parameters,{refit:true});};}catch(error){card.textContent=`${i+1}   Cannot form this variation: ${error.message}`;card.disabled=true;}
  $('gallery-status').textContent=`${i+1} / 16 variations processed`;
  }
 }
 
 sync();
 
-const stepsPanel=document.createElement('section');stepsPanel.id='generation-steps';stepsPanel.hidden=true;stepsPanel.innerHTML='<div class="toolbar"><div><h2>How the form develops</h2><p>One shared camera scale. Branching first, then peak heights, folded mass, marginal growth, and vertical E/C. Click a card to inspect that exact step.</p></div><button id="refresh-steps">Refresh sequence</button></div><p id="steps-status" role="status"></p><div id="steps-grid"></div>';main.append(stepsPanel);
+const stepsPanel=document.createElement('section');stepsPanel.id='generation-steps';stepsPanel.hidden=true;stepsPanel.innerHTML='<div class="toolbar"><div><h2>How the form develops</h2><p>One shared camera scale. Solid seed, branching mass, peak hierarchy, marginal growth, then vertical E/C. Click a card to inspect that exact step.</p></div><button id="refresh-steps">Refresh sequence</button></div><p id="steps-status" role="status"></p><div id="steps-grid"></div>';main.append(stepsPanel);
 let stepRun=0;
 $('tab-steps').onclick=()=>{galleryRun++;editor.hidden=true;gallery.hidden=true;stepsPanel.hidden=false;$('tab-study').setAttribute('aria-pressed','false');$('tab-variations').setAttribute('aria-pressed','false');$('tab-steps').setAttribute('aria-pressed','true');generateSteps();};
 $('refresh-steps').onclick=generateSteps;
 async function generateSteps(){
  const run=++stepRun,base={...model.parameters},reference=model,grid=$('steps-grid');grid.replaceChildren();const sequence=[];
- for(let growth=0;growth<=base.growth;growth++)sequence.push({label:growth?'Branch growth '+growth:'Seed organization',stage:0,parameters:{...base,growth,marginSteps:0,verticalSteps:0}});
+ for(let growth=0;growth<=base.growth;growth++)sequence.push({label:growth?'Branching mass '+growth:'Seed mass',stage:3,parameters:{...base,growth,height:Math.max(base.wall+1,base.height*.5),marginSteps:0,verticalSteps:0}});
  const plain={...base,marginSteps:0,verticalSteps:0};
- sequence.push({label:'Lift the peaks',stage:1,parameters:plain},{label:'Fold the roof',stage:2,parameters:plain},{label:'Close the mass',stage:3,parameters:plain});
+ sequence.push({label:'Develop peak hierarchy',stage:3,parameters:plain});
  for(let marginSteps=1;marginSteps<=base.marginSteps;marginSteps++)sequence.push({label:'Marginal growth '+marginSteps,stage:3,parameters:{...base,marginSteps,verticalSteps:0}});
  for(let verticalSteps=1;verticalSteps<=base.verticalSteps;verticalSteps++)sequence.push({label:'Vertical E/C '+verticalSteps,stage:3,parameters:{...base,verticalSteps}});
  $('steps-status').textContent=`Building ${sequence.length} stages...`;
@@ -192,3 +193,38 @@ for(const key of Object.keys(lineWeights))for(const suffix of ['', '-number'])$(
 const shadingControls=document.createElement('fieldset');shadingControls.innerHTML=`<legend>Shading</legend><label class="control" for="shade-strength">Face shade contrast<output id="shade-value">${Math.round(shadeStrength*100)}%</output></label><input id="shade-strength" type="range" min="0" max="100" step="1" value="${shadeStrength*100}"><label><input id="soft-shadows" type="checkbox" ${softShadows?'checked':''}> Soft shadows</label>`;aside.insertBefore(shadingControls,primary);
 let shadeTimer;function updateShading(){shadeStrength=Number($('shade-strength').value)/100;softShadows=$('soft-shadows').checked;$('shade-value').textContent=Math.round(shadeStrength*100)+'%';try{localStorage.setItem('cathedral-shading',JSON.stringify({strength:shadeStrength,shadows:softShadows}));}catch{}clearTimeout(shadeTimer);shadeTimer=setTimeout(()=>{draw();invalidate();for(const card of document.querySelectorAll('.variation-card'))if(card.previewData&&card.querySelector('img'))card.querySelector('img').replaceWith(thumbnail(card.previewData.model,card.previewData.options));},80);}
 $('shade-strength').oninput=updateShading;$('soft-shadows').onchange=updateShading;
+
+function planThumbnail(m){
+ const canvas=document.createElement('canvas');canvas.width=240;canvas.height=270;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,240,270);
+ const points=m.roof.vertices,minX=Math.min(...points.map(v=>v[0])),maxX=Math.max(...points.map(v=>v[0])),minY=Math.min(...points.map(v=>v[1])),maxY=Math.max(...points.map(v=>v[1])),scale=Math.min(210/(maxX-minX||1),210/(maxY-minY||1));
+ const project=v=>[120+(v[0]-(minX+maxX)/2)*scale,130-(v[1]-(minY+maxY)/2)*scale];
+ const seen=new Set();ctx.strokeStyle='#000';ctx.lineWidth=.35;
+ for(const f of m.roof.faces)for(let i=0;i<3;i++){const a=f[i],b=f[(i+1)%3],k=a<b?`${a}:${b}`:`${b}:${a}`;if(seen.has(k))continue;seen.add(k);ctx.beginPath();ctx.moveTo(...project(points[a]));ctx.lineTo(...project(points[b]));ctx.stroke();}
+ ctx.lineWidth=1.6;ctx.beginPath();m.boundary.forEach((id,i)=>ctx[i?'lineTo':'moveTo'](...project(points[id])));ctx.closePath();ctx.stroke();ctx.font='11px sans-serif';ctx.fillText('ROOF PLAN',15,255);
+ const img=new Image();img.src=canvas.toDataURL();img.alt='Black and white roof plan';return img;
+}
+// Separate form decisions from representation and detailed grammar settings.
+const displaySettings=document.createElement('details');displaySettings.innerHTML='<summary>Drawing settings</summary>';displaySettings.append(penControls,shadingControls);aside.append(displaySettings);
+const symmetrySettings=document.createElement('details');symmetrySettings.innerHTML='<summary>Body balance</summary>';symmetrySettings.append(balances);primary.append(symmetrySettings);
+$('axis-density').previousElementSibling.firstChild.textContent='Branching';$('axis-spread').previousElementSibling.firstChild.textContent='Footprint spread';$('axis-mass').previousElementSibling.firstChild.textContent='Body width';$('axis-slender').previousElementSibling.firstChild.textContent='Height';
+const cascadeLabel=$('axis-cascade').previousElementSibling;const cascadeSettings=document.createElement('fieldset');cascadeSettings.innerHTML='<legend>Peak proportions</legend>';cascadeSettings.append(cascadeLabel,$('axis-cascade'));advanced.prepend(cascadeSettings);
+primary.querySelector('h3').textContent='Form';
+
+
+// Export selects an atlas card without replacing the study parameters.
+const exportMode=document.createElement('button');exportMode.textContent='Export a variation';exportMode.setAttribute('aria-pressed','false');$('regenerate').before(exportMode);
+let selectingExport=false;
+exportMode.onclick=()=>{selectingExport=!selectingExport;exportMode.setAttribute('aria-pressed',String(selectingExport));exportMode.textContent=selectingExport?'Select a variation to export':'Export a variation';};
+const exportDialog=document.createElement('dialog');exportDialog.className='drawing-export';exportDialog.innerHTML='<div class="buttons"><strong>Drawing export</strong><select aria-label="Export view"><option value="all">All three views</option><option value="iso">Isometric</option><option value="elevation">Elevation</option><option value="plan">Plan</option></select><button data-format="svg">Download SVG</button><button data-format="png">Download PNG</button><button data-close>Close</button></div><p>No labels or text. Uses your drawing lineweights and face shading.</p><img alt="Text-free export preview">';document.body.append(exportDialog);
+let exportModel,exportSVG='',exportPreviewURL;
+async function refreshExport(){const {drawingSVG,drawingSheetSVG}=await import('./drawing-export.mjs?v=35');const selected=exportDialog.querySelector('select').value;exportSVG=selected==='all'?drawingSheetSVG(exportModel,lineWeights,shadeStrength):drawingSVG(exportModel,selected,lineWeights,shadeStrength);if(exportPreviewURL)URL.revokeObjectURL(exportPreviewURL);exportPreviewURL=URL.createObjectURL(new Blob([exportSVG],{type:'image/svg+xml'}));exportDialog.querySelector('img').src=exportPreviewURL;}
+function openDrawingExport(m){exportModel=m;exportDialog.showModal();refreshExport();}
+exportDialog.querySelector('select').onchange=refreshExport;
+exportDialog.querySelector('[data-close]').onclick=()=>exportDialog.close();
+function saveDrawing(blob,extension){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`cathedral-${exportDialog.querySelector('select').value}.${extension}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+exportDialog.querySelector('[data-format="svg"]').onclick=()=>saveDrawing(new Blob([exportSVG],{type:'image/svg+xml'}),'svg');
+exportDialog.querySelector('[data-format="png"]').onclick=async()=>{const img=new Image();img.src=exportPreviewURL;await img.decode();const canvas=document.createElement('canvas');canvas.width=exportDialog.querySelector('select').value==='all'?4800:3200;canvas.height=exportDialog.querySelector('select').value==='all'?1600:3200;canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>saveDrawing(blob,'png'),'image/png');};
+$('variation-grid').addEventListener('click',event=>{if(!selectingExport)return;const card=event.target.closest('.variation-card');if(!card?.previewData)return;event.stopImmediatePropagation();event.preventDefault();openDrawingExport(card.previewData.model);},true);
+
+
+const meshControl=document.createElement('fieldset');meshControl.innerHTML='<legend>Triangle proportions</legend><label for="triangle-size">Target edge length</label><input id="triangle-size" type="number" min="0" step="1" value="'+model.parameters.triangleSize+'"><small>Smaller values divide long faces further. Zero disables balancing.</small>';advanced.append(meshControl);$('triangle-size').onchange=()=>rebuild({...draft,triangleSize:Math.max(0,Number($('triangle-size').value))},{refit:false});
