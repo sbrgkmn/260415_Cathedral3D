@@ -204,7 +204,7 @@ test('nave ratios independently taper widths and shorten clear side spans',()=>{
 });
 
 test('proportion lock restores vertical prominence and all atlas morphologies close',async()=>{
- const {variationRecipes}=await import('./branching-variations.mjs');
+ const {towerVariationRecipes:variationRecipes}=await import('./branching-variations.mjs');
  const p={...MOUNTAIN_DEFAULTS,levels:1,nave:1,packing:.6,verticalSteps:2};
  const locked=buildBranching(p),absolute=buildBranching({...p,proportionLock:0});
  assert.ok(locked.nodes[0].point[2]>=absolute.nodes[0].point[2]);
@@ -272,7 +272,7 @@ test('base panels rise with local roofs without moving peaks or opening the volu
 });
 
 test('vertical atlas keeps articulated closed bodies despite a coarse source margin threshold',async()=>{
- const {variationRecipes}=await import('./branching-variations.mjs');
+ const {towerVariationRecipes:variationRecipes}=await import('./branching-variations.mjs');
  for(const recipe of variationRecipes({...MOUNTAIN_DEFAULTS,marginMin:10000,marginSteps:0,verticalSteps:0})){
   const m=buildBranching(recipe);
   assert.ok(m.integrity.watertight);assert.equal(m.integrity.components,1);
@@ -303,4 +303,129 @@ test('quality guard preserves compressed roof triangles while refining broad tri
  balanceTriangles(narrow,10);assert.equal(narrow.faces.length,1);
  const broad={vertices:[[0,0,0],[100,0,0],[50,86.6,0]],faces:[[0,1,2]],regions:{roof:[0,1]}};
  balanceTriangles(broad,20);assert.ok(broad.faces.length>1);
+});
+
+test('fixed-position E/C sequence preserves introduced vertices and closes every half-cycle',async()=>{
+ const {towerVariationRecipes:variationRecipes}=await import('./branching-variations.mjs');
+ for(const p of [
+  {...MOUNTAIN_DEFAULTS,nave:1,marginSteps:2,marginMin:3,verticalSteps:2},
+  ...variationRecipes({...MOUNTAIN_DEFAULTS,verticalSteps:2}),
+ ]){
+  const m=buildBranching(p,{capture:true});
+  const used=mesh=>new Set(mesh.faces.flatMap(f=>f.map(i=>key(mesh.vertices[i]))));
+  assert.ok(m.sequence[0].roof.faces.length>=4,"Seed spans final envelope");
+  assert.ok(m.sequence[0].boundary.length>=4);
+  assert.ok(m.sequence.some(s=>s.label.startsWith("Plan E1")));
+  const final=used(m.solid);let previous=new Set();
+  for(const frame of m.sequence){
+   assert.ok(frame.integrity.watertight,frame.label);assert.equal(frame.integrity.components,1);
+   const current=used(frame.solid);
+   for(const vertex of current)assert.ok(final.has(vertex),'Stage vertex must be at its final position: '+frame.label);
+   for(const vertex of previous)assert.ok(current.has(vertex),'Previously introduced vertex must remain: '+frame.label);
+   previous=current;
+  }
+  assert.ok(m.sequence.some(s=>s.label.startsWith('E1')));
+  assert.ok(m.sequence.some(s=>s.label.startsWith('C1')));
+  const normal=buildBranching(p);assert.deepEqual(m.solid,normal.solid,'Recording must not change the final model');
+ }
+});
+
+test('plan E/C adds at most one sibling pair, parents first and base outwards',async()=>{
+ const {variationRecipes}=await import('./branching-variations.mjs');
+ for(const p of variationRecipes(MOUNTAIN_DEFAULTS)){
+  const m=buildBranching(p,{capture:true}),events=m.sequence.filter(f=>f.operation?.phase==='plan');
+  const seen=new Set([0]);let previousDistance=-1;
+  for(let i=0;i<events.length;i+=2){const E=events[i],C=events[i+1];
+   assert.equal(E.operation.type,'E');assert.equal(C.operation.type,'C');
+   assert.ok(C.operation.addedBranches.length<=2);assert.ok(C.operation.addedBranches.length>0);
+   assert.deepEqual(E.operation.branches,C.operation.branches);
+   // Dependency is represented by the supporting axis of station attachments.
+   let parent=C.operation.parent;while(m.nodes[parent].kind==='station')parent=m.nodes[parent].axisStart;
+   assert.ok(seen.has(parent),'A parent axis must precede its side branches');
+   for(const id of C.operation.addedBranches){assert.ok(!seen.has(id));seen.add(id);}
+   assert.ok(C.operation.baseDistance>=previousDistance-1e-7,'Base-outward ordering');previousDistance=C.operation.baseDistance;
+   assert.notDeepEqual(E.roof.faces,C.roof.faces,'E and C must be distinct geometric stages');
+  }
+  assert.equal(seen.size,m.nodes.filter(n=>n.kind!=='station').length);
+ }
+});
+
+test('leaf generator produces recursive C/E children with fixed symmetric watertight stages',()=>{
+ const p={...MOUNTAIN_DEFAULTS,generator:1,leafCycles:3,leafSpan:80,leafContraction:.4,leafExpansion:.22,leafDecay:.65,leafMin:2,verticalSteps:1,triangleSize:0};
+ const m=buildBranching(p,{capture:true}),used=mesh=>new Set(mesh.faces.flatMap(f=>f.map(i=>key(mesh.vertices[i])))),final=used(m.solid);
+ assert.deepEqual(m.operations.map(o=>o.type),['C','E','C','E','C','E']);
+ assert.equal(m.operations[0].cells,4);assert.equal(m.operations[1].cells,8);assert.equal(m.operations[2].cells,16);
+ assert.equal(m.sequence[0].roof.faces.length,4);
+ let previous=new Set();
+ for(const frame of m.sequence){assert.ok(frame.integrity.watertight);assert.equal(frame.integrity.components,1);const current=used(frame.solid);
+  for(const pos of previous)assert.ok(current.has(pos),'Established vertex must stay');for(const pos of current)assert.ok(final.has(pos),'Stage vertex must occur in final mesh');previous=current;
+  const faceKey=points=>points.map(key).sort().join('|'),faces=new Set(frame.roof.faces.map(f=>faceKey(f.map(i=>frame.roof.vertices[i]))));
+  for(const f of frame.roof.faces){const points=f.map(i=>frame.roof.vertices[i]);assert.ok(faces.has(faceKey(points.map(([x,y,z])=>[-y,x,z]))));}
+ }
+ assert.ok(meshIntegrity(decodeBinarySTL(encodeBinarySTL(m.solid))).watertight);
+ const coarse=buildBranching({...p,leafCycles:1});assert.ok(m.nodes.length>coarse.nodes.length);
+ const stopped=buildBranching({...p,leafMin:100000});assert.equal(stopped.operations.length,0);
+});
+
+test('branched atlas preserves tower families with closed progressive E/C sequences',async()=>{
+ const {variationRecipes}=await import('./branching-variations.mjs');
+ const signatures=new Set();
+ for(const p of variationRecipes({...MOUNTAIN_DEFAULTS,leafSpan:80})){
+  assert.equal(p.generator,0);
+  const m=buildBranching(p,{capture:true});assert.ok(m.integrity.watertight);assert.equal(m.integrity.components,1);
+  assert.ok(m.sequence.every(frame=>frame.integrity.watertight));assert.ok(m.sequence.some(f=>f.label.startsWith('C')));assert.ok(m.sequence.some(f=>f.label.startsWith('E')));
+  const used=mesh=>new Set(mesh.faces.flatMap(f=>f.map(i=>key(mesh.vertices[i]))));
+  const final=used(m.solid);let previous=new Set();
+  for(const frame of m.sequence){const current=used(frame.solid);
+   for(const vertex of previous)assert.ok(current.has(vertex),'Branch-stage vertex must persist');
+   for(const vertex of current)assert.ok(final.has(vertex),'Branch-stage vertex must match final coordinates');
+   previous=current;
+  }
+
+  signatures.add(m.boundary.map(i=>key(m.roof.vertices[i])).join('|'));
+ }
+ assert.equal(variationRecipes(MOUNTAIN_DEFAULTS).length,32);
+ assert.ok(signatures.size>=28,'Atlas should contain distinct plan outlines');
+});
+
+test('spine growth adds repeated attachment stations and recursively stations child axes',()=>{
+ const p={...MOUNTAIN_DEFAULTS,generator:1,spineGrowth:1,leafCycles:3,leafAspect:3,leafSpan:100,spineSpacing:20,spineSpacingDecay:.3,leafMin:2,verticalSteps:0,triangleSize:0};
+ const m=buildBranching(p,{capture:true}),used=mesh=>new Set(mesh.faces.flatMap(f=>f.map(i=>key(mesh.vertices[i]))));
+ assert.ok(m.nodes.filter(n=>n.kind==='station'&&n.generation===0).length>=8);
+ assert.ok(m.nodes.some(n=>n.kind==='station'&&n.generation>0));
+ assert.ok(m.sequence.filter(s=>s.label.startsWith('Axis')).length>=2);
+ let previous=new Set();const final=used(m.solid);
+ for(const f of m.sequence){assert.ok(f.integrity.watertight);const current=used(f.solid);for(const k of previous)assert.ok(current.has(k));for(const k of current)assert.ok(final.has(k));previous=current;}
+ const sparse=buildBranching({...p,leafCycles:1,spineSpacing:40}),dense=buildBranching({...p,leafCycles:1,spineSpacing:15});assert.ok(dense.nodes.length>sparse.nodes.length);
+});
+
+
+test('fixed-envelope plan stages preserve every detected reflection in roof triangles',async()=>{
+ const {variationRecipes}=await import('./branching-variations.mjs');
+ const coordinate=p=>p.map(x=>(Math.abs(x)<1e-6?0:x).toFixed(5)).join(':'),faceKey=ps=>ps.map(coordinate).sort().join('|');
+ for(const p of variationRecipes(MOUNTAIN_DEFAULTS)){
+  const m=buildBranching(p,{capture:true});
+  const stages=m.sequence.filter(f=>f.operation);
+  const bounds=f=>[0,1].map(axis=>{const values=f.boundary.map(id=>f.roof.vertices[id][axis]);return [Math.min(...values),Math.max(...values)];});
+  const seed=bounds(stages[0]);
+  for(const frame of stages){assert.deepEqual(bounds(frame),seed,'Plan envelope must not enlarge');assert.equal(Math.max(...frame.roof.faces.flat().map(id=>frame.roof.vertices[id][2])),Math.max(...stages[0].roof.faces.flat().map(id=>stages[0].roof.vertices[id][2])),'Peak envelope stays fixed');
+   const v=frame.roof.vertices,used=[...new Set(frame.roof.faces.flat())],points=new Set(used.map(id=>coordinate(v[id]))),boundary=new Set(frame.boundary.map(id=>coordinate(v[id]))),faces=new Set(frame.roof.faces.map(f=>faceKey(f.map(id=>v[id]))));
+   for(let k=0;k<12;k++){const a=k*Math.PI/6,c=Math.cos(a),s=Math.sin(a),reflect=([x,y,z])=>[c*x+s*y,s*x-c*y,z];
+    if(!used.every(id=>points.has(coordinate(reflect(v[id]))))||!frame.boundary.every(id=>boundary.has(coordinate(reflect(v[id])))))continue;
+    for(const f of frame.roof.faces)assert.ok(faces.has(faceKey(f.map(id=>reflect(v[id])))),frame.label+' / reflection '+k);
+   }
+  }
+ }
+});
+
+
+test('simple symmetric study activates complete groups and preserves symmetry through vertical cycles',()=>{
+ const p={...MOUNTAIN_DEFAULTS,symmetryGroups:1,morphology:2,levels:1,length:72,branchWidth:18,height:175,falloff:.58,growth:1,spacing:22,spurRatio:.6,spurAngle:75,nave:1,packing:.35,branchReach:.35,branchTaper:.65,spineWidth:1.35,projectionWidth:1,proportionLock:0,tipNose:.35,baseRiseRatio:.3,marginSteps:0,verticalSteps:2,verticalLift:.22,minArea:40,triangleSize:0};
+ const m=buildBranching(p,{capture:true}),coordinate=p=>p.map(x=>(Math.abs(x)<1e-6?0:x).toFixed(5)).join(':'),faceKey=ps=>ps.map(coordinate).sort().join('|');
+ assert.deepEqual(m.sequence.filter(f=>f.operation?.type==='C').map(f=>f.operation.addedBranches.length),[4,8,8]);
+ const final=new Set(m.solid.faces.flatMap(f=>f.map(id=>coordinate(m.solid.vertices[id]))));let previous=new Set();
+ for(const frame of m.sequence){assert.ok(frame.integrity.watertight);const v=frame.roof.vertices,faces=new Set(frame.roof.faces.map(f=>faceKey(f.map(id=>v[id]))));
+  for(const f of frame.roof.faces)for(const transform of [([x,y,z])=>[-x,y,z],([x,y,z])=>[-y,x,z]])assert.ok(faces.has(faceKey(f.map(id=>transform(v[id])))),frame.label);
+  const current=new Set(frame.solid.faces.flatMap(f=>f.map(id=>coordinate(frame.solid.vertices[id]))));for(const position of previous)assert.ok(current.has(position));for(const position of current)assert.ok(final.has(position));previous=current;
+ }
 });

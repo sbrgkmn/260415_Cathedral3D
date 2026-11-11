@@ -225,3 +225,57 @@ Atlas recipes now use one marginal-growth cycle (rather than two) to reduce narr
 ### Shape-aware stopping
 
 When triangle balancing is active, E/C now stops on roof cells with poor plan aspect ratios. The balancing pass also checks projected area, plan quality and prospective 3D child quality. Either incident face can veto a shared-edge split, preventing refinement from spreading into a narrow ridge. This prioritizes readable proportions over equal edge lengths; pointed peaks and existing narrow folds remain geometrically intact. These checks reduce added slivers but do not remesh away every acute triangle.
+
+## Fixed-position E/C sequence
+
+Steps now records the actual geometry construction in the worker rather than rebuilding smaller parameterized towers. The seed is the coarse branch scaffold with its final peak anchors. Each marginal cycle records an expansion with outward shoulder vertices, then a contraction introducing the recess vertices. Each vertical cycle records raised shoulder vertices followed by valley vertices. Face hubs use the same coordinates in both half-cycles; once introduced, a vertex never moves. Subsequent cycles refine the resulting cells. Surface balancing is shown separately at the end.
+
+All intermediate roofs receive connected walls and a base through the same closeRoof function. Both marginal half-cycles are checked for a valid plan. Final bounds drive thumbnails and selected-stage camera fitting. Clicks inspect the recorded mesh rather than regenerate a different parameter set. A zero-cycle or size-limited operation adds no fictitious stage. This sequence starts from the established branching scaffold; it does not reconstruct tree generation as E/C. Plan E/C articulates that scaffold's branch shoulders and recesses in 3D.
+
+The sequence test checks closed single-component meshes, persistence of introduced vertex coordinates, membership in the final vertex set, and an unchanged final result with recording enabled, across all sixteen atlas recipes plus a two-cycle example.
+
+### Pyramid and progressive plan branching
+
+Plan development now precedes the former scaffold. Four convex-hull vertices already present in the final roof surround the root peak, giving four seed roof triangles. The boundary is revealed by the generation of nearby branch nodes; eligible peaks are inserted at their final coordinates. Triangulation splits both incident faces when a point lies on an edge. A peak is introduced only if every subsequent recessed plan contains it, preserving vertex persistence. The complete branch-fold scaffold then transitions into plan E/C, vertical E/C, and final balancing. The Steps tab groups plan and vertical development separately.
+
+The pyramid has four roof faces plus its wall/base closure. Its anchors need not form a perfect square for asymmetric plans. This is a construction sequence derived from the final branch geometry, not independent re-growth with changing dimensions.
+
+## Leaf C/E generator
+
+Growth method / Leaf C/E growth selects a separate boundary-driven generator (`generator=1`). It starts with four triangular roof faces over a square. Each live cell owns an apex, oriented boundary edge, and recursion depth. C inserts a boundary valley toward that cell's apex and produces two child boundary cells. E expands those new edges outward, creates a local child peak, reconnects it with bridge triangles, and passes its two outer faces to the next cycle. The final geometry is produced by these operations, not used as a target for a reveal sequence.
+
+Controls: leafCycles (0–4), leafSpan, leafContraction, leafExpansion, leafDecay, leafMin; existing height and verticalSteps follow. Small cells stop before C. Expansion collision checks retry the entire symmetry family at a reduced amplitude. All introduced coordinates remain fixed. Each intermediate roof closes through the existing wall/base construction. Optional vertical E/C follows horizontal growth, and surface balancing remains last. Plan previews accompany the leaf-mode sequence; GIF animation uses those same recorded stages.
+
+This is an interpretation of Figures 1, 6 and 7 in the supplied publication, not a reconstruction of its exact maple-leaf parameters. Initial scope is a four-fold square seed. The tower atlas intentionally stays on the earlier generator for comparison.
+
+### Leaf-based variation atlas
+
+The visible 4 x 4 atlas now uses generator=1 throughout. Rows compare Broad lobes, Deep clefts, Tiered spires and Fine branching by changing C/E strengths and child peak ratios. Columns show Primary, Branching, Recursive and Elaborate regimes through 1–3 plan cycles, local stopping thresholds and vertical detail. Seed width and height scale from the study; obsolete tree settings do not determine these forms. Each card loads the exact leaf recipe. Plans, Steps, image exports and GIF generation use that recipe. Legacy tower recipes remain exported separately for regression comparisons.
+
+### Diverse 4 x 8 atlas
+
+The atlas now contains 32 leaf-generator recipes in four columns and eight rows. Rows vary seed aspect/rotation, front-back balance and first-generation peak organization (central, paired, crown, one-sided). Columns select all regions, outward-tip priority, one opposing pair, or alternating opposing pairs. Deferred cells remain available to later alternating cycles. Each child inherits its original sector, so selection operates on branch families rather than incidental vertex order. UI controls expose these new parameters for continued editing after card selection. Every card retains its own closed sequence and drawing/GIF export compatibility.
+
+### Repeated branches along spines
+
+Repeated spine branches adds shared attachment stations along the four seed axes before C/E. Matching cells on opposite sides of each axis grow lateral branches. Their child axes receive stations in later cycles, producing secondary branching rather than only perimeter lobes. Spine branch spacing controls attachment density; Child spine spacing ratio scales spacing with recursion depth. Each axis uses at most five intervals to bound growth. The 32 atlas recipes now enable this mode. Boundary lobes remains available for comparison. Station insertion is a separate recorded Axis stage; C/E follows, then vertical development. Shared edge subdivisions preserve closed meshes and introduced vertex positions. Regression tests cover recursive stations, spacing response and watertight fixed-position sequences.
+
+### Restored branched tower atlas
+
+The current atlas restores the original 16 tower recipes and adds 16 branching nave, double-transept, tiered-crown and asymmetric-tower recipes. All use the branch graph and thickened corridors (generator=0), followed by marginal and vertical E/C. The experimental leaf generator remains opt-in; it no longer determines atlas massing. Steps pair a black-and-white plan with each 3D stage for both engines. Branch stages are fixed-position scaffold construction derived from the final graph, not independent E/C growth; actual marginal and vertical E/C are recorded separately. This preserves the identifiable lateral branches and tower hierarchy rather than replacing them with boundary pleats.
+
+### Base-outward plan E/C productions
+
+Plan sequence now schedules individual branch pairs, not whole generations. Nodes retain birth parents and stations retain their supporting axis. Dependencies keep parents before children; root-to-attachment arc length orders ready pairs from base outward. Each production contains at most two branches (including radial main axes, paired oppositely). Full radial symmetry can therefore occur only after several pair cycles, not every intermediate step.
+
+The seed uses four nearby final boundary vertices surrounding the root rather than distant terminal anchors. Exact roof vertex ownership replaces nearest-node assignment. E inserts that pair's outer boundary shoulders; C adds its reentrant corners and eligible local peaks/saddles. Existing vertices stay fixed, and interior vertices are deferred if a later recess would exclude them. This is a staged construction using the final graph's parameters, not a claim to reproduce the publication's exact rule grammar. The final tower mesh is unchanged. Boundary-margin E/C is labeled separately from branch production, followed by vertical E/C. Tests verify every atlas production's pair limit, parent dependency, base-outward order, distinct E/C geometry, coordinate persistence and watertight closure.
+
+### Symmetric fixed-envelope steps
+
+The seed now uses the outer hull of the final branch scaffold and its highest peaks, rather than a small core that grows in width. Depending on the family this needs more than four seed triangles. Every plan step retains that XY envelope and peak height. All introduced coordinates belong to the final mesh; the changes are connectivity, folded faces and inward recesses. Marginal surface detail follows separately.
+
+Intermediate roof triangulation detects reflection symmetry, triangulates a fundamental sector where existing vertices support it, and otherwise clips mirrored ears with symmetry-invariant local patch repair. No temporary axis vertices are added. Atlas regressions check reflected face sets for twelve candidate axes, fixed plan/peak bounds, persistence and watertightness. Coplanar wall closure diagonals remain in the exported solid but are omitted from drawings, thumbnails and wire displays; wall shading is uniform so arbitrary closure diagonals do not read as folds.
+
+### Simple symmetric teaching sequence
+
+Use Simple symmetric sequence in the sidebar. This loads one cruciform example with symmetryGroups=1, balanced proportions, two attachment stations on each arm, no marginal detail and two vertical cycles. Branch events are grouped by their full reflection/quarter-turn orbit: four primary arms, then eight side branches at each of two root-outward stations. Every group completes E/C together. This deliberately replaces the two-branch cap in this mode. The final coordinates remain fixed and the atlas is unchanged. A dedicated regression checks every roof face under reflection and quarter-turn rotation across both plan and vertical phases, plus vertex persistence and closure.

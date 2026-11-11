@@ -1,6 +1,6 @@
 const key=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
 const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
-export function developMargins(roof,boundary,p,valid){
+export function developMargins(roof,boundary,p,valid,record=null){
  const stats={steps:0,lobes:0,notches:0,limited:false};
  if(p.marginSteps>3||p.marginSteps<0||p.marginSize<0||p.marginSize>.4||p.marginMin<=0)throw Error('Margins need 0-3 cycles, size 0-40%, and positive minimum edge length.');
  for(let step=0;step<p.marginSteps;step++){
@@ -23,15 +23,22 @@ export function developMargins(roof,boundary,p,valid){
     cuts.set(key(a,b),{a,ids});nextBoundary.push(...ids);count++;
    }
    if(!count)return stats;
-   const nextFaces=[],nextTipFaces=[];
+   const nextFaces=[],expansionFaces=[],nextTipFaces=[];
+   const contractions=new Set([...cuts.values()].map(c=>c.ids[1]));
    for(const [faceIndex,f] of faces.entries()){let changed=false;const polygon=[];for(let i=0;i<3;i++){const a=f[i],b=f[(i+1)%3];polygon.push(a);const cut=cuts.get(key(a,b));if(cut){changed=true;polygon.push(...(cut.a===a?cut.ids:[...cut.ids].reverse()));}}
-    if(!changed){if(tipFaces.has(faceIndex))nextTipFaces.push(nextFaces.length);nextFaces.push(f);continue;}
+    if(!changed){if(tipFaces.has(faceIndex))nextTipFaces.push(nextFaces.length);nextFaces.push(f);expansionFaces.push(f);continue;}
     const hub=nextVertices.push([0,1,2].map(axis=>f.reduce((s,id)=>s+vertices[id][axis],0)/3))-1;
+    const expanded=polygon.filter(id=>!contractions.has(id));
+    for(let i=0;i<expanded.length;i++)expansionFaces.push([expanded[i],expanded[(i+1)%expanded.length],hub]);
     for(let i=0;i<polygon.length;i++){if(tipFaces.has(faceIndex))nextTipFaces.push(nextFaces.length);nextFaces.push([polygon[i],polygon[(i+1)%polygon.length],hub]);}
    }
    if(nextVertices.length>50000)throw Error('Margin detail exceeds the mesh budget. Increase minimum edge length or reduce cycles.');
    const candidate={vertices:nextVertices,faces:nextFaces};
-   if(valid(candidate,nextBoundary)){roof.vertices=nextVertices;roof.faces=nextFaces;roof.tipFaceIndices=nextTipFaces;boundary.splice(0,boundary.length,...nextBoundary);stats.steps++;stats.lobes+=count*2;stats.notches+=count;stats.limited ||= attempt>0;accepted=true;break;}
+   const expansion={vertices:nextVertices,faces:expansionFaces},expansionBoundary=nextBoundary.filter(id=>!contractions.has(id));
+   if(valid(candidate,nextBoundary)&&valid(expansion,expansionBoundary)){
+    if(record)record(`E${step+1} - margin shoulders`,{...roof,...expansion},expansionBoundary);
+    if(record)record(`C${step+1} - margin recesses`,{...roof,...candidate},nextBoundary);
+    roof.vertices=nextVertices;roof.faces=nextFaces;roof.tipFaceIndices=nextTipFaces;boundary.splice(0,boundary.length,...nextBoundary);stats.steps++;stats.lobes+=count*2;stats.notches+=count;stats.limited ||= attempt>0;accepted=true;break;}
   }
   if(!accepted)throw Error('Marginal growth crosses a neighboring fold. Reduce margin size or cycles.');
  }
